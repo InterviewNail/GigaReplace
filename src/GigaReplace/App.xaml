@@ -1,0 +1,134 @@
+<Application x:Class="GigaReplace.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GigaReplace"
+             ThemeMode="System"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <local:InverseBoolConverter x:Key="InverseBool" />
+            <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility" />
+            <local:HasValueToVisibilityConverter x:Key="HasValue" />
+            <local:EnumToBoolConverter x:Key="EnumToBool" />
+            <local:DecisionTextConverter x:Key="DecisionText" />
+
+            <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+            <FontFamily x:Key="CodeFont">Cascadia Mono, Consolas, Courier New</FontFamily>
+
+            <Style x:Key="Card" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="20,16" />
+                <Setter Property="Margin" Value="0,0,0,12" />
+            </Style>
+
+            <Style x:Key="CodeBox" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="8,6" />
+            </Style>
+
+            <Style x:Key="SectionTitle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,0,0,10" />
+            </Style>
+
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,12,0,4" />
+            </Style>
+
+            <Style x:Key="Hint" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+
+            <Style x:Key="Icon" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <Style x:Key="CellText" TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                <Setter Property="ToolTipService.InitialShowDelay" Value="600" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="4,0" />
+                <Style.Triggers>
+                    <!-- Selected rows use the accent color, so text switches to the accent's text color (dark on light accents in dark mode). -->
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="ReasonCellText" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+            </Style>
+
+            <!-- Decision glyph: warning = needs a decision, check = replace, pencil = custom, dash = skip. -->
+            <Style x:Key="DecisionGlyph" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                <Setter Property="Text" Value="&#xE73E;" />
+                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Decision}" Value="Pending">
+                        <Setter Property="Text" Value="&#xE7BA;" />
+                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Decision}" Value="Custom">
+                        <Setter Property="Text" Value="&#xE70F;" />
+                        <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Decision}" Value="Skip">
+                        <Setter Property="Text" Value="&#xE738;" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- One line of a code preview, with the match highlighted. -->
+            <DataTemplate x:Key="PreviewLineTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Number}" FontFamily="{StaticResource CodeFont}" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Right" Margin="0,0,10,0" />
+                    <TextBlock Grid.Column="1" FontFamily="{StaticResource CodeFont}" FontSize="12" TextWrapping="Wrap">
+                        <Run Text="{Binding Before, Mode=OneWay}" /><Run Text="{Binding Match, Mode=OneWay}" FontWeight="Bold"
+                             Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}" /><Run Text="{Binding After, Mode=OneWay}" />
+                    </TextBlock>
+                </Grid>
+            </DataTemplate>
+
+            <!-- A reason a change was flagged. -->
+            <DataTemplate x:Key="RiskTemplate">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="26" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" VerticalAlignment="Top" Margin="0,2,0,0"
+                               Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock TextWrapping="Wrap">
+                            <Run Text="{Binding Title, Mode=OneWay}" FontWeight="SemiBold" />
+                            <Run Text="{Binding CategoryTitle, Mode=OneWay, StringFormat=· {0}}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
+                        </TextBlock>
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,106 @@
+<Window x:Class="GigaReplace.Views.DecisionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding ProgressText}"
+        Width="780" SizeToContent="Height" MaxHeight="900" MinHeight="360"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResize">
+    <Grid Margin="22,18,22,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="22" Margin="0,0,10,0"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                <TextBlock Text="Possible problem" FontSize="20" FontWeight="SemiBold" />
+            </StackPanel>
+            <TextBlock Text="{Binding Details.Header}" FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Details.Where}" Style="{StaticResource Hint}" Margin="0,2,0,8" />
+        </StackPanel>
+
+        <!-- Code -->
+        <Border Grid.Row="1" Style="{StaticResource CodeBox}">
+            <ItemsControl ItemsSource="{Binding Details.Lines}" ItemTemplate="{StaticResource PreviewLineTemplate}" />
+        </Border>
+
+        <!-- Change -->
+        <TextBlock Grid.Row="2" FontFamily="{StaticResource CodeFont}" Margin="0,10,0,4" TextWrapping="Wrap">
+            <Run Text="{Binding Details.Item.WordText, Mode=OneWay}" /><Run Text="  →  " Foreground="{DynamicResource TextFillColorTertiaryBrush}" /><Run Text="{Binding Details.Item.WordProposedText, Mode=OneWay}" FontWeight="SemiBold" />
+        </TextBlock>
+
+        <!-- Reasons -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0" MaxHeight="260">
+            <ItemsControl ItemsSource="{Binding Details.Risks}" ItemTemplate="{StaticResource RiskTemplate}" />
+        </ScrollViewer>
+
+        <!-- Custom text and scope -->
+        <StackPanel Grid.Row="4" Margin="0,4,0,0">
+            <Grid Visibility="{Binding ShowCustom, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">
+                    <Run Text="Replace “" /><Run Text="{Binding Details.Item.OriginalText, Mode=OneWay}" /><Run Text="” with:" />
+                </TextBlock>
+                <TextBox x:Name="CustomBox" Grid.Column="1" Text="{Binding CustomText, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="{StaticResource CodeFont}" AutomationProperties.Name="Custom replacement" />
+                <Button Grid.Column="2" Content="Use this text" Command="{Binding UseCustomCommand}" Margin="8,0,0,0" />
+            </Grid>
+            <CheckBox IsChecked="{Binding ApplyToSymbol}" Visibility="{Binding Details.HasSymbolGroup, Converter={StaticResource BoolToVisibility}}"
+                      Margin="0,0,0,8">
+                <TextBlock TextWrapping="Wrap">
+                    <Run Text="Same choice for " /><Run Text="{Binding Details.SymbolScopeInline, Mode=OneWay}" /><Run Text=", so the name stays consistent" />
+                </TextBlock>
+            </CheckBox>
+        </StackPanel>
+
+        <!-- Main choices -->
+        <WrapPanel Grid.Row="5" Margin="0,6,0,0">
+            <Button Style="{DynamicResource AccentButtonStyle}" Command="{Binding ReplaceCommand}" IsDefault="True" Padding="18,6" Margin="0,0,8,8" AutomationProperties.Name="Replace">
+                <TextBlock>
+                    <Run Text="Replace with “" /><Run Text="{Binding Details.Item.ProposedText, Mode=OneWay}" /><Run Text="”" />
+                </TextBlock>
+            </Button>
+            <Button Content="_Skip" Command="{Binding SkipCommand}" Padding="18,6" Margin="0,0,8,8" ToolTip="Leave this text as it is" />
+            <Button Content="_Custom…" Command="{Binding ToggleCustomCommand}" Padding="18,6" Margin="0,0,8,8" ToolTip="Replace it with different text" />
+            <Button Command="{Binding ReplaceAllLikeThisCommand}" Padding="14,6" Margin="16,0,8,8" AutomationProperties.Name="Replace all like this"
+                    Visibility="{Binding Details.HasSimilar, Converter={StaticResource BoolToVisibility}}"
+                    ToolTip="{Binding Details.SimilarScopeText}">
+                <TextBlock>
+                    <Run Text="Replace all like this (" /><Run Text="{Binding Details.SimilarCount, Mode=OneWay}" /><Run Text=")" />
+                </TextBlock>
+            </Button>
+            <Button Command="{Binding SkipAllLikeThisCommand}" Padding="14,6" Margin="0,0,8,8" AutomationProperties.Name="Skip all like this"
+                    Visibility="{Binding Details.HasSimilar, Converter={StaticResource BoolToVisibility}}"
+                    ToolTip="{Binding Details.SimilarScopeText}">
+                <TextBlock>
+                    <Run Text="Skip all like this (" /><Run Text="{Binding Details.SimilarCount, Mode=OneWay}" /><Run Text=")" />
+                </TextBlock>
+            </Button>
+        </WrapPanel>
+
+        <!-- Navigation -->
+        <DockPanel Grid.Row="6" Margin="0,8,0,0">
+            <Button DockPanel.Dock="Left" Command="{Binding BackCommand}" Padding="12,5" AutomationProperties.Name="Back"
+                    Visibility="{Binding CanGoBack, Converter={StaticResource BoolToVisibility}}" ToolTip="Revisit the previous item">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE76B;" Margin="0,0,6,0" />
+                    <TextBlock Text="Back" />
+                </StackPanel>
+            </Button>
+            <Button DockPanel.Dock="Right" Content="{Binding StopText}" Command="{Binding StopCommand}" IsCancel="True" Padding="14,5"
+                    ToolTip="{Binding StopHint}" />
+            <TextBlock />
+        </DockPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GigaReplace.Core/GigaReplace.Core.csproj" />
+    <Project Path="src/GigaReplace/GigaReplace.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GigaReplace.Core.Tests/GigaReplace.Core.Tests.csproj" />
+  </Folder>
+</Solution>
