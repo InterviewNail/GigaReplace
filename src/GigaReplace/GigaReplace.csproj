@@ -7,6 +7,7 @@
     <AssemblyName>GigaReplace</AssemblyName>
     <RootNamespace>GigaReplace</RootNamespace>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>Assets\GigaReplace.ico</ApplicationIcon>
     <!-- WPF's Fluent theme (ThemeMode) is still flagged as experimental. -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>

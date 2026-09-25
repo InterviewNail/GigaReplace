@@ -51,7 +51,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="44" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="40" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="112" />
                             <ColumnDefinition Width="124" />
@@ -71,7 +71,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="44" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="40" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="112" />
                                         <ColumnDefinition Width="124" />
@@ -81,8 +81,10 @@
                                               AutomationProperties.Name="Use this pair" ToolTip="Use this pair" />
                                     <TextBox Grid.Column="1" Text="{Binding Find, UpdateSourceTrigger=PropertyChanged}"
                                              FontFamily="{StaticResource CodeFont}" AutomationProperties.Name="Find" />
-                                    <TextBlock Grid.Column="2" Style="{StaticResource Icon}" Text="&#xE72A;" HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    <Button Grid.Column="2" Command="{Binding SwapCommand}" HorizontalAlignment="Center" Padding="6,5"
+                                            ToolTip="Swap Find and Replace with" AutomationProperties.Name="Swap Find and Replace with">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8AB;" />
+                                    </Button>
                                     <TextBox Grid.Column="3" Text="{Binding Replace, UpdateSourceTrigger=PropertyChanged}"
                                              FontFamily="{StaticResource CodeFont}" AutomationProperties.Name="Replace with" />
                                     <CheckBox Grid.Column="4" IsChecked="{Binding MatchCase}" Content="Strict" Margin="8,0,0,0" MinWidth="0"

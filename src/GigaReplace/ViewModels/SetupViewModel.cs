@@ -30,6 +30,9 @@ public partial class RuleViewModel : ObservableObject
 
     public bool CanPreserveCase => !MatchCase;
 
+    [RelayCommand]
+    private void Swap() => (Find, Replace) = (Replace, Find);
+
     public static RuleViewModel From(ReplacementRule rule) => new()
     {
         Id = rule.Id,
