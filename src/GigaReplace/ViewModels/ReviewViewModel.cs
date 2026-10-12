@@ -21,6 +21,7 @@ public enum ItemFilter
     Kept,
     Renames,
     IdentityGuids,
+    EditByHand,
 }
 
 public enum DecisionScope
@@ -73,6 +74,8 @@ public partial class ReviewViewModel : ObservableObject
     private ICollectionView? _itemsView;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ReplaceSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UseCustomTextCommand))]
     private ChangeItem? _selectedItem;
 
     [ObservableProperty]
@@ -158,6 +161,7 @@ public partial class ReviewViewModel : ObservableObject
         new(ItemFilter.Kept, "Skipped"),
         new(ItemFilter.Renames, "File and folder names"),
         new(ItemFilter.IdentityGuids, "Identity GUIDs"),
+        new(ItemFilter.EditByHand, "Edit by hand (can't be changed here)"),
     ];
 
     public IReadOnlyList<FilterOption<RiskCategory?>> CategoryOptions { get; } =
@@ -167,6 +171,7 @@ public partial class ReviewViewModel : ObservableObject
         new(RiskCategory.PersistedData, RiskCatalog.Title(RiskCategory.PersistedData)),
         new(RiskCategory.AppIdentity, RiskCatalog.Title(RiskCategory.AppIdentity)),
         new(RiskCategory.WatchList, RiskCatalog.Title(RiskCategory.WatchList)),
+        new(RiskCategory.Documents, RiskCatalog.Title(RiskCategory.Documents)),
     ];
 
     public bool HasScan => Scan is not null;
@@ -275,6 +280,7 @@ public partial class ReviewViewModel : ObservableObject
             ItemFilter.Kept => item.Decision == Decision.Skip,
             ItemFilter.Renames => item.IsRename,
             ItemFilter.IdentityGuids => item.Context == MatchContext.IdentityGuid,
+            ItemFilter.EditByHand => !item.CanChange,
             _ => true,
         };
         if (!keep || (Category is { } category && !item.Risks.Any(r => r.Category == category)))
@@ -423,7 +429,9 @@ public partial class ReviewViewModel : ObservableObject
         OnPropertyChanged(nameof(ShownText));
     }
 
-    [RelayCommand]
+    private bool CanChangeSelected => SelectedItem is { CanChange: true };
+
+    [RelayCommand(CanExecute = nameof(CanChangeSelected))]
     private void ReplaceSelected()
     {
         if (SelectedItem is { } item)
@@ -441,7 +449,7 @@ public partial class ReviewViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanChangeSelected))]
     private void UseCustomText()
     {
         if (SelectedItem is { } item)

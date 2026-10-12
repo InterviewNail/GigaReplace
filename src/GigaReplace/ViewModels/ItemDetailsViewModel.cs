@@ -12,15 +12,18 @@ public sealed class ItemDetailsViewModel
     public ItemDetailsViewModel(ScanResult scan, ChangeItem item)
     {
         Item = item;
-        Header = item.Kind == ChangeKind.Content ? $"{item.RelativePath} · line {item.Line}" : item.RelativePath;
+        Header = item.Place is not null ? $"{item.RelativePath} · {item.Place}"
+            : item.Kind == ChangeKind.Content ? $"{item.RelativePath} · line {item.Line}" : item.RelativePath;
         Where = string.IsNullOrEmpty(item.ContextDetail) ? item.ContextDisplay : $"{item.ContextDisplay} · {item.ContextDetail}";
         Risks = item.Risks;
 
         if (item.Kind == ChangeKind.Content)
         {
+            // PDF text has no line numbers of its own, so none are shown.
+            string Number(int n) => item.Place is null ? n.ToString() : "";
             Lines = scan.ContextLines(item, before: 2, after: 2).Select(l => l.MatchStart < 0
-                ? new PreviewLine(l.Number.ToString(), l.Text, "", "", false)
-                : Split(l.Number.ToString(), l.Text, l.MatchStart, l.MatchLength)).ToList();
+                ? new PreviewLine(Number(l.Number), l.Text, "", "", false)
+                : Split(Number(l.Number), l.Text, l.MatchStart, l.MatchLength)).ToList();
         }
         else
         {

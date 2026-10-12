@@ -34,6 +34,12 @@ public sealed class ReplaceProfile
 
     public bool RenameFolders { get; set; } = true;
 
+    /// <summary>Look for matches inside PDF files (text and document properties).</summary>
+    public bool SearchPdfs { get; set; } = true;
+
+    /// <summary>Also change text on PDF pages where that can be done safely; otherwise it's only listed.</summary>
+    public bool EditPdfText { get; set; } = true;
+
     /// <summary>Extra exclusions in .gitignore syntax, relative to the source folder.</summary>
     public List<string> ExcludePatterns { get; set; } = [.. DefaultExcludePatterns];
 

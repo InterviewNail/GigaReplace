@@ -1,5 +1,6 @@
 using GigaReplace.Core.Analysis;
 using GigaReplace.Core.FileSystem;
+using GigaReplace.Core.Pdf;
 using GigaReplace.Core.Text;
 
 namespace GigaReplace.Core.Planning;
@@ -16,7 +17,13 @@ public sealed class ScannedFile
 
     public TextFileContent? Content { get; init; }
 
-    /// <summary>SHA-256 of the file's bytes when it was scanned (text files only).</summary>
+    /// <summary>The searchable view of a PDF, when PDFs are searched.</summary>
+    public PdfContent? Pdf { get; init; }
+
+    /// <summary>The text that content matches' offsets refer to.</summary>
+    public string? SearchText => Content?.Text ?? Pdf?.Text;
+
+    /// <summary>SHA-256 of the file's bytes when it was scanned (text files and PDFs).</summary>
     public byte[]? Hash { get; init; }
 
     public string? Error { get; init; }
@@ -113,12 +120,12 @@ public sealed class ScanResult
     /// <summary>The lines around a text match, with the match marked.</summary>
     public IReadOnlyList<ContextLine> ContextLines(ChangeItem item, int before = 3, int after = 3)
     {
-        if (item.Kind != ChangeKind.Content || !Files.TryGetValue(item.RelativePath, out var file) || file.Content is null)
+        if (item.Kind != ChangeKind.Content || !Files.TryGetValue(item.RelativePath, out var file) || file.SearchText is not { } searchText)
         {
             return [];
         }
 
-        var lines = new LineIndex(file.Content.Text);
+        var lines = new LineIndex(searchText);
         int target = lines.LineOf(item.Offset);
         int first = Math.Max(0, target - before);
         int last = Math.Min(lines.LineCount - 1, target + after);

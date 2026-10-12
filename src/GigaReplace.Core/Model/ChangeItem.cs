@@ -67,11 +67,18 @@ public sealed class ChangeItem : INotifyPropertyChanged
 
     public Decision DefaultDecision { get; init; }
 
+    /// <summary>False for matches that are only reported, such as PDF text that can't be rewritten safely.</summary>
+    public bool CanChange { get; init; } = true;
+
+    /// <summary>Where the match is, when a line number means nothing (for example "page 3" in a PDF).</summary>
+    public string? Place { get; init; }
+
     public Decision Decision
     {
         get => _decision;
         set
         {
+            value = Allowed(value);
             if (_decision == value)
             {
                 return;
@@ -134,15 +141,16 @@ public sealed class ChangeItem : INotifyPropertyChanged
         _ => "Folder name",
     };
 
-    public string Location => Kind == ChangeKind.Content ? $"{RelativePath}:{Line}" : RelativePath;
+    public string Location => Place is not null ? $"{RelativePath} ({Place})" : Kind == ChangeKind.Content ? $"{RelativePath}:{Line}" : RelativePath;
 
-    public string LineDisplay => Kind == ChangeKind.Content ? Line.ToString() : "";
+    public string LineDisplay => Place ?? (Kind == ChangeKind.Content ? Line.ToString() : "");
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>Sets the decision and custom text together, raising change notifications once.</summary>
     public void SetDecision(Decision decision, string? customText = null)
     {
+        decision = Allowed(decision);
         var newCustom = decision == Decision.Custom ? customText : null;
         if (_decision == decision && _customText == newCustom)
         {
@@ -153,6 +161,8 @@ public sealed class ChangeItem : INotifyPropertyChanged
         _customText = newCustom;
         NotifyDecisionChanged();
     }
+
+    private Decision Allowed(Decision decision) => CanChange || decision is Decision.Skip ? decision : Decision.Skip;
 
     private string Splice(string replacement)
     {

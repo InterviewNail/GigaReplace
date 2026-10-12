@@ -128,6 +128,12 @@
                         <CheckBox Content="File names" IsChecked="{Binding RenameFiles}" Margin="0,0,24,0" />
                         <CheckBox Content="Folder names" IsChecked="{Binding RenameFolders}" />
                     </WrapPanel>
+                    <WrapPanel Margin="0,8,0,0">
+                        <CheckBox Content="Look inside PDF files" IsChecked="{Binding SearchPdfs}" Margin="0,0,24,0"
+                                  ToolTip="Find matches in PDF text and document properties (title, author, subject, keywords, XMP metadata)" />
+                        <CheckBox Content="Change text on PDF pages when it's safe" IsChecked="{Binding EditPdfText}" IsEnabled="{Binding SearchPdfs}"
+                                  ToolTip="When off, matches on PDF pages are only listed, for you to edit by hand. Document properties can still change." />
+                    </WrapPanel>
 
                     <DockPanel Margin="0,12,0,4">
                         <Button DockPanel.Dock="Right" Content="Reset to defaults" Command="{Binding ResetExclusionsCommand}" Padding="10,3" />
@@ -143,7 +149,7 @@
                         <TextBlock Text="MB" VerticalAlignment="Center" />
                     </StackPanel>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
-                               Text=".git folders are never changed. Binary files (images, DLLs, …) are never edited, but can be renamed. Each file keeps its encoding, byte order mark and line endings." />
+                               Text=".git folders are never changed. Binary files (images, DLLs, …) are never edited, but can be renamed. Each file keeps its encoding, byte order mark and line endings. PDF text is changed only where the PDF's own font has every letter needed; the new text is fitted to the old width so the page layout stays put, and anything else is listed for you to edit by hand." />
                 </StackPanel>
             </Border>
 

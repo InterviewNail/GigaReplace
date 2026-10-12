@@ -22,6 +22,7 @@ public static class RiskCatalog
             or RiskCode.PackageIdentity or RiskCode.AppUserModelId or RiskCode.AssemblyReference
             => RiskCategory.AppIdentity,
         RiskCode.WatchListTerm => RiskCategory.WatchList,
+        RiskCode.PdfFitted or RiskCode.PdfEditByHand => RiskCategory.Documents,
         _ => RiskCategory.PersistedData,
     };
 
@@ -58,6 +59,8 @@ public static class RiskCatalog
         RiskCode.AppUserModelId => "Windows app ID",
         RiskCode.AssemblyReference => "Assembly name reference",
         RiskCode.WatchListTerm => "Watch-list",
+        RiskCode.PdfFitted => "Resized to fit",
+        RiskCode.PdfEditByHand => "Edit by hand",
         _ => code.ToString(),
     };
 
@@ -67,6 +70,7 @@ public static class RiskCatalog
         RiskCategory.PersistedData => "Persisted/external data",
         RiskCategory.AppIdentity => "App identity",
         RiskCategory.WatchList => "Watch-list",
+        RiskCategory.Documents => "PDF documents",
         _ => category.ToString(),
     };
 }

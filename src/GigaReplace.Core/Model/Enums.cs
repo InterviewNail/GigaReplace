@@ -60,6 +60,8 @@ public enum MatchContext
     FileName,
     FolderName,
     IdentityGuid,
+    PdfText,
+    PdfProperty,
 }
 
 public enum RiskCategory
@@ -68,6 +70,7 @@ public enum RiskCategory
     PersistedData,
     AppIdentity,
     WatchList,
+    Documents,
 }
 
 public enum RiskCode
@@ -110,6 +113,10 @@ public enum RiskCode
 
     // Watch-list
     WatchListTerm,
+
+    // Documents
+    PdfFitted,
+    PdfEditByHand,
 }
 
 public static class ContextNames
@@ -132,6 +139,8 @@ public static class ContextNames
         MatchContext.FileName => "File name",
         MatchContext.FolderName => "Folder name",
         MatchContext.IdentityGuid => "Identity GUID",
+        MatchContext.PdfText => "PDF text",
+        MatchContext.PdfProperty => "PDF property",
         _ => context.ToString(),
     };
 }

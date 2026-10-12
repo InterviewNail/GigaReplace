@@ -57,21 +57,24 @@ public partial class DecisionViewModel : ObservableObject
 
     public event EventHandler? CloseRequested;
 
-    [RelayCommand]
+    /// <summary>False for matches that are only reported (such as PDF text that can't be rewritten).</summary>
+    public bool CanChange => Details.Item.CanChange;
+
+    [RelayCommand(CanExecute = nameof(CanChange))]
     private void Replace() => Close(DecisionAction.Replace);
 
     [RelayCommand]
     private void Skip() => Close(DecisionAction.Skip);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanChange))]
     private void ToggleCustom() => ShowCustom = !ShowCustom;
 
-    private bool HasCustomText => CustomText is not null;
+    private bool HasCustomText => CustomText is not null && CanChange;
 
     [RelayCommand(CanExecute = nameof(HasCustomText))]
     private void UseCustom() => Close(DecisionAction.Custom);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanChange))]
     private void ReplaceAllLikeThis() => Close(DecisionAction.ReplaceAllLikeThis);
 
     [RelayCommand]

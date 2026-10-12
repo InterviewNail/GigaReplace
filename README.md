@@ -63,16 +63,37 @@ Each kind can be switched off in Setup.
 | Persisted or external data | Properties of serialized types (JSON, XML, EF, `IOptions`, user settings) unless their stored name is fixed by an attribute; strings used as file or folder names, registry keys, mutex and pipe names, environment variables, configuration and resource keys, URLs, connection strings, reflection names |
 | App identity | `AssemblyName`, `RootNamespace`, `PackageId`, `InternalsVisibleTo`, manifests, installer scripts, and project files whose default assembly name or namespace would change |
 | Watch-list | Any match on a line containing your own terms (one per line; `/regex/` allowed) |
+| PDF documents | PDF text that has to be squeezed or stretched by more than 10% to fit; PDF text that can only be edited by hand (see below) |
 
 Optionally, **new identity GUIDs** (UpgradeCode, ProductCode, ProjectGuid, UserSecretsId,
 assembly GUID) are generated and applied consistently everywhere they appear, so a renamed
 fork can be installed next to the original.
 
+## PDF files
+
+PDFs are searched too (switch it off in Setup). Matches in the document properties (title,
+author, subject, keywords and the XMP metadata) are changed like any other text. Text on the
+pages is changed only when that can be done without damaging the page:
+
+- The new text is drawn with the PDF's own font, so every letter it needs must already be in
+  that font. Most PDFs embed only the letters they use, so `OrderHub → SalesDesk` may fail for
+  lack of an "S". The match is then listed as **Edit by hand** and never changed.
+- The new text is fitted to the old text's width (horizontal scaling), so nothing after it on
+  the line moves. A fit beyond ±10% is flagged so you can check how it looks.
+- Text the PDF draws in separately placed pieces, inside part of a ligature, in vertical or
+  Type 3 fonts, or on pages whose fonts can't be decoded is listed for you to edit by hand.
+  So is everything in encrypted or digitally signed PDFs.
+
+Changes are written as an *incremental update*: the original bytes stay as they are and the
+changed objects are appended, as PDF editors do. Annotations, form fields and bookmarks aren't
+searched. If the PDF is generated from files in the tree (Markdown, Word, report templates),
+changing those and regenerating it gives the cleanest result.
+
 ## Good to know
 
 - Files keep their encoding, byte order mark and line endings byte for byte. A file counts as
-  text only if decoding and re-encoding it reproduces the original bytes. Binary files are
-  never edited, but can be renamed.
+  text only if decoding and re-encoding it reproduces the original bytes. Binary files other
+  than PDFs are never edited, but can be renamed.
 - `.git` folders are never changed. `bin`, `obj`, `.vs` and friends are skipped by default, and
   `.gitignore` files in the tree are honored (global git excludes aren't read).
 - C# is analyzed with the Roslyn parser, without compiling. The analysis is thorough but
@@ -85,6 +106,6 @@ fork can be installed next to the original.
 
 | Path | What's there |
 | --- | --- |
-| `src/GigaReplace.Core` | The engine: matching and casing (`Text`), tree walking and `.gitignore` (`FileSystem`), per-file analyzers (`Analysis`), scanning and plan validation (`Planning`), copy, in-place and undo (`Apply`), profiles and the CSV report |
+| `src/GigaReplace.Core` | The engine: matching and casing (`Text`), tree walking and `.gitignore` (`FileSystem`), per-file analyzers (`Analysis`), PDF reading and rewriting (`Pdf`, on top of PdfPig), scanning and plan validation (`Planning`), copy, in-place and undo (`Apply`), profiles and the CSV report |
 | `src/GigaReplace` | The WPF app (MVVM with CommunityToolkit.Mvvm, Fluent theme that follows the system light/dark setting) |
 | `tests/GigaReplace.Core.Tests` | xUnit tests for the engine |

@@ -291,6 +291,12 @@ public static class PlanValidator
     {
         foreach (var group in scan.Items.Where(i => i.Kind == ChangeKind.Content && i.WillChange).GroupBy(i => i.RelativePath))
         {
+            if (scan.Files[group.Key].Pdf is { } pdf)
+            {
+                CheckPdf(group.Key, pdf, group, problems);
+                continue;
+            }
+
             var content = scan.Files[group.Key].Content;
             if (content is null || !content.IsLegacy8Bit)
             {
@@ -309,6 +315,23 @@ public static class PlanValidator
                     Fixes = [new QuickFix("Keep the old text", bad, Decision.Skip)],
                 });
             }
+        }
+    }
+
+    /// <summary>Custom text in a PDF must be drawable with the font already there.</summary>
+    private static void CheckPdf(string path, Pdf.PdfContent pdf, IEnumerable<ChangeItem> items, List<PlanProblem> problems)
+    {
+        var bad = items.Where(i => pdf.CannotWrite(i.Offset, i.Length, i.FinalText) is not null).ToList();
+        if (bad.Count > 0)
+        {
+            problems.Add(new PlanProblem
+            {
+                Severity = ProblemSeverity.Error,
+                Title = "Text the PDF can't draw",
+                Message = $"{path}: {pdf.CannotWrite(bad[0].Offset, bad[0].Length, bad[0].FinalText)}",
+                Items = bad,
+                Fixes = [new QuickFix("Keep the old text", bad, Decision.Skip)],
+            });
         }
     }
 

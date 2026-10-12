@@ -95,7 +95,7 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="File or folder" Binding="{Binding RelativePath}" Width="2*" ElementStyle="{StaticResource CellText}" />
-                        <DataGridTextColumn Header="Line" Binding="{Binding LineDisplay}" SortMemberPath="Line" Width="56" ElementStyle="{StaticResource CellText}" />
+                        <DataGridTextColumn Header="Line" Binding="{Binding LineDisplay}" SortMemberPath="Line" Width="72" ElementStyle="{StaticResource CellText}" />
                         <DataGridTemplateColumn Header="Change" Width="2*" SortMemberPath="WordText">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
