@@ -5,7 +5,18 @@ replaces text in file contents, file names and folder names. Before changing any
 analyzes each match. When a change could break the build, orphan stored data or change the
 app's identity, it asks you what to do.
 
-## Run it
+## Download
+
+Get the latest version from the [Releases page](https://github.com/InterviewNail/GigaReplace/releases/latest):
+
+- **GigaReplace-Standalone.exe**: runs on any Windows 10/11 PC with nothing else to install (about 65 MB).
+- **GigaReplace.exe**: a much smaller download, but needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+The build check (*Build it with dotnet*) needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) installed either way.
+
+There's no installer: put the exe in a folder you'll keep it in and run it. The exe isn't code-signed, so Windows may show "Windows protected your PC" the first time. Click **More info**, then **Run anyway**.
+
+## Run from source
 
 ```powershell
 dotnet run --project src/GigaReplace
@@ -109,3 +120,18 @@ changing those and regenerating it gives the cleanest result.
 | `src/GigaReplace.Core` | The engine: matching and casing (`Text`), tree walking and `.gitignore` (`FileSystem`), per-file analyzers (`Analysis`), PDF reading and rewriting (`Pdf`, on top of PdfPig), scanning and plan validation (`Planning`), copy, in-place and undo (`Apply`), profiles and the CSV report |
 | `src/GigaReplace` | The WPF app (MVVM with CommunityToolkit.Mvvm, Fluent theme that follows the system light/dark setting) |
 | `tests/GigaReplace.Core.Tests` | xUnit tests for the engine |
+
+## Releasing
+
+Pushing a version tag builds, tests and publishes a release with both exes attached (see [.github/workflows/release.yml](.github/workflows/release.yml)):
+
+```
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The tag also sets the version shown in the exe's file properties.
+
+## License
+
+[MIT](LICENSE). The release exes include third-party libraries; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

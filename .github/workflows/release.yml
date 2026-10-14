@@ -1,0 +1,53 @@
+name: Release
+
+# Pushing a version tag (e.g. v1.0.1) builds, tests and publishes a GitHub release with the exe attached.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          dotnet publish src/GigaReplace -c Release -r win-x64 --self-contained false `
+            -p:PublishSingleFile=true -p:SatelliteResourceLanguages=en -p:DebugType=none -p:Version=$version -o out/runtime
+          dotnet publish src/GigaReplace -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true -p:SatelliteResourceLanguages=en -p:DebugType=none -p:Version=$version -o out/standalone
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item out/runtime/GigaReplace.exe dist/GigaReplace.exe
+          Copy-Item out/standalone/GigaReplace.exe dist/GigaReplace-Standalone.exe
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @'
+          ## Download
+
+          - **GigaReplace-Standalone.exe**: runs on any Windows 10/11 PC, nothing else to install (larger download).
+          - **GigaReplace.exe**: small download, but needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+          The build check (*Build it with dotnet*) needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) installed either way.
+
+          The exe isn't code-signed, so Windows may show "Windows protected your PC" the first time. Click **More info**, then **Run anyway**.
+          '@
+          gh release create '${{ github.ref_name }}' dist/GigaReplace-Standalone.exe dist/GigaReplace.exe `
+            --title 'GigaReplace ${{ github.ref_name }}' --notes $notes --generate-notes
