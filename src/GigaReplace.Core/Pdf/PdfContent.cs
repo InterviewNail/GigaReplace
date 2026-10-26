@@ -434,13 +434,13 @@ public sealed partial class PdfContent
 
         string pageDetail = $"page {page}";
         string? reason = PageTextProblem(start, length, replacement, allowPageText, out var segments, out int[]? codes);
-        if (reason is not null)
+        if (reason is not null || segments is null || codes is null)
         {
             return new PdfMatchInfo(MatchContext.PdfText, pageDetail, place, reason, null);
         }
 
-        double before = segments!.Sum(s => s.Width);
-        double after = segments[0].Show.Advance(codes!.Select(c => new PdfPart(c, 0)));
+        double before = segments.Sum(s => s.Width);
+        double after = segments[0].Show.Advance(codes.Select(c => new PdfPart(c, 0)));
         double? fit = after > 0 && before > 0 ? before / after * 100 : null;
         return new PdfMatchInfo(MatchContext.PdfText, pageDetail, place, null, fit);
     }
