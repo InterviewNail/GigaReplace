@@ -251,6 +251,16 @@
                             <TextBlock Style="{StaticResource Hint}" Text="Ask about each flagged change as the run reaches it, then offer to apply." />
                         </StackPanel>
                     </RadioButton>
+
+                    <CheckBox IsChecked="{Binding RememberDecisions}" Margin="0,16,0,0" AutomationProperties.Name="Remember my decisions">
+                        <StackPanel>
+                            <TextBlock Text="Remember my decisions for next time" FontWeight="SemiBold" />
+                            <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap"
+                                       Text="The next scan of this folder reuses them, even after the files change: unchanged matches get the same decision, and ones on changed lines are marked for you to check. Kept in your app data (with the matched lines), never next to the code." />
+                        </StackPanel>
+                    </CheckBox>
+                    <Button Content="Forget remembered decisions for this folder" HorizontalAlignment="Left" Margin="30,8,0,0" Padding="10,3"
+                            Command="{Binding DataContext.ForgetMemoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </StackPanel>
             </Border>
 

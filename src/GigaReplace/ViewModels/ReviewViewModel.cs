@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GigaReplace.Core;
+using GigaReplace.Core.Memory;
 using GigaReplace.Core.Planning;
 using GigaReplace.Core.Profiles;
 using GigaReplace.Services;
@@ -22,6 +23,8 @@ public enum ItemFilter
     Renames,
     IdentityGuids,
     EditByHand,
+    Remembered,
+    RememberedCheck,
 }
 
 public enum DecisionScope
@@ -66,6 +69,9 @@ public partial class ReviewViewModel : ObservableObject
     private readonly DispatcherTimer _validateTimer;
     private readonly DispatcherTimer _searchTimer;
     private List<ChangeItem> _items = [];
+    private readonly HashSet<ChangeItem> _likeThis = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<string> _forgottenPatterns = new(StringComparer.Ordinal);
+    private RecallSummary _recall;
     private HashSet<ChangeItem>? _only;
     private ListCollectionView? _view;
     private bool _suppressRefresh;
@@ -76,6 +82,7 @@ public partial class ReviewViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ReplaceSelectedCommand))]
     [NotifyCanExecuteChangedFor(nameof(UseCustomTextCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ForgetSelectedCommand))]
     private ChangeItem? _selectedItem;
 
     [ObservableProperty]
@@ -162,6 +169,8 @@ public partial class ReviewViewModel : ObservableObject
         new(ItemFilter.Renames, "File and folder names"),
         new(ItemFilter.IdentityGuids, "Identity GUIDs"),
         new(ItemFilter.EditByHand, "Edit by hand (can't be changed here)"),
+        new(ItemFilter.Remembered, "Remembered from last time"),
+        new(ItemFilter.RememberedCheck, "Remembered — worth a check"),
     ];
 
     public IReadOnlyList<FilterOption<RiskCategory?>> CategoryOptions { get; } =
@@ -186,15 +195,32 @@ public partial class ReviewViewModel : ObservableObject
 
     public string DecisionText => PendingCount == 0 ? "Every flagged item has a decision." : $"{PendingCount:N0} flagged items need a decision.";
 
+    /// <summary>"Last time's decisions…", or empty when nothing came from memory.</summary>
+    public string RememberedText => _recall.Total == 0 ? ""
+        : _recall.ToCheck == 0 ? $"Reused {Plural(_recall.Total, "decision")} from last time."
+        : $"Reused {Plural(_recall.Total, "decision")} from last time. {_recall.ToCheck:N0} {(_recall.ToCheck == 1 ? "is" : "are")} worth a check: show “Remembered — worth a check”.";
+
+    private static string Plural(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n:N0} {noun}s";
+
+    /// <summary>Items decided with "… all like this" in this session, remembered as patterns.</summary>
+    public IReadOnlyCollection<ChangeItem> LikeThisChoices => _likeThis;
+
+    /// <summary>Patterns the user asked to forget in this session.</summary>
+    public IReadOnlyCollection<string> ForgottenPatterns => _forgottenPatterns;
+
     public string ProblemsHeader => ErrorCount > 0
         ? $"Problems: {ErrorCount} to fix, {WarningCount} to check"
         : WarningCount > 0 ? $"Problems: {WarningCount} to check" : "No problems found";
 
     public string ShownText => ShownCount == TotalCount ? $"{TotalCount:N0} shown" : $"{ShownCount:N0} of {TotalCount:N0} shown";
 
-    public void Load(ScanResult scan)
+    public void Load(ScanResult scan, RecallSummary recall = default)
     {
         Scan = scan;
+        _recall = recall;
+        _likeThis.Clear();
+        _forgottenPatterns.Clear();
+        OnPropertyChanged(nameof(RememberedText));
         IsStale = false;
         _items = scan.Items.ToList();
         _only = null;
@@ -225,6 +251,10 @@ public partial class ReviewViewModel : ObservableObject
     {
         Scan = null;
         _items = [];
+        _recall = default;
+        _likeThis.Clear();
+        _forgottenPatterns.Clear();
+        OnPropertyChanged(nameof(RememberedText));
         _view = null;
         ItemsView = null;
         SelectedItem = null;
@@ -281,6 +311,8 @@ public partial class ReviewViewModel : ObservableObject
             ItemFilter.Renames => item.IsRename,
             ItemFilter.IdentityGuids => item.Context == MatchContext.IdentityGuid,
             ItemFilter.EditByHand => !item.CanChange,
+            ItemFilter.Remembered => item.IsRemembered,
+            ItemFilter.RememberedCheck => item.NeedsRememberedCheck,
             _ => true,
         };
         if (!keep || (Category is { } category && !item.Risks.Any(r => r.Category == category)))
@@ -348,6 +380,33 @@ public partial class ReviewViewModel : ObservableObject
             target.SetDecision(decision, customText);
         }
 
+        if (scope == DecisionScope.Similar)
+        {
+            _likeThis.Add(item);
+        }
+
+        AfterDecisions();
+    }
+
+    private bool CanForgetSelected => SelectedItem is { IsRemembered: true };
+
+    /// <summary>Drops a remembered decision: the item goes back to what the scan proposed, and isn't remembered again unless decided again.</summary>
+    [RelayCommand(CanExecute = nameof(CanForgetSelected))]
+    private void ForgetSelected()
+    {
+        if (SelectedItem is not { } item)
+        {
+            return;
+        }
+
+        if (item.Remembered == RememberState.Pattern)
+        {
+            _forgottenPatterns.Add(DecisionRecall.PatternKey(item));
+        }
+
+        item.SetDecision(item.DefaultDecision);
+        item.Remembered = RememberState.None;
+        ForgetSelectedCommand.NotifyCanExecuteChanged();
         AfterDecisions();
     }
 
@@ -387,9 +446,10 @@ public partial class ReviewViewModel : ObservableObject
     private void AfterDecisions()
     {
         Recount();
+        ForgetSelectedCommand.NotifyCanExecuteChanged();
         _validateTimer.Stop();
         _validateTimer.Start();
-        if (Filter is ItemFilter.NeedsDecision or ItemFilter.WillChange or ItemFilter.Kept)
+        if (Filter is ItemFilter.NeedsDecision or ItemFilter.WillChange or ItemFilter.Kept or ItemFilter.Remembered or ItemFilter.RememberedCheck)
         {
             RefreshView();
         }

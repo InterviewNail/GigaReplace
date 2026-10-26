@@ -65,6 +65,9 @@ public sealed class ReplaceProfile
 
     public PromptMode PromptMode { get; set; } = PromptMode.ReviewFirst;
 
+    /// <summary>Reuse decisions from earlier runs on the same folder, and save this run's for next time.</summary>
+    public bool RememberDecisions { get; set; } = true;
+
     public static JsonSerializerOptions JsonOptions { get; } = new()
     {
         WriteIndented = true,

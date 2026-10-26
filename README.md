@@ -64,6 +64,23 @@ solution with `dotnet new`, renames a copy and builds it; skip it with
      behind empty, and the Results tab says so.
 6. **Build check.** *Build it with dotnet* runs `dotnet build` on the result and lists any errors.
 
+## Remembering decisions
+
+GigaReplace remembers your decisions for each source folder (switch it off in Setup), so
+scanning the same folder again, even after the code has changed, only asks about what's new:
+
+- A match in an unchanged file, or on an unchanged line, gets the same decision as before.
+- A match whose line changed gets the old decision if the line is still recognizably the same;
+  it's marked **Remembered — worth a check**.
+- Choices made with **… all like this** apply to matching items in new files too.
+- Files GigaReplace wrote are recognized when scanned later, so their remaining matches (the
+  ones you skipped) aren't offered again.
+
+Only decisions that differ from what the scan proposed are kept, and editing a rule drops the
+decisions made with it. **Forget** on the review screen drops one; Setup can forget a whole
+folder. Memories live in `%APPDATA%\GigaReplace\Memory`, one file per folder, and include
+the matched lines, so they're never written next to the code or into profiles.
+
 ## What gets flagged
 
 Each kind can be switched off in Setup.

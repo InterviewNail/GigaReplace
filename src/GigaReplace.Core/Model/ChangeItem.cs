@@ -15,10 +15,20 @@ public sealed class ChangeItem : INotifyPropertyChanged
         new(nameof(WordFinalText)),
         new(nameof(WordPreviewText)),
         new(nameof(PreviewText)),
+        new(nameof(DecisionDisplay)),
+    ];
+
+    private static readonly PropertyChangedEventArgs[] RememberedDependents =
+    [
+        new(nameof(Remembered)),
+        new(nameof(IsRemembered)),
+        new(nameof(RememberedNote)),
+        new(nameof(DecisionDisplay)),
     ];
 
     private Decision _decision;
     private string? _customText;
+    private RememberState _remembered;
 
     public int Id { get; internal set; }
 
@@ -86,6 +96,7 @@ public sealed class ChangeItem : INotifyPropertyChanged
 
             _decision = value;
             NotifyDecisionChanged();
+            Remembered = RememberState.None;
         }
     }
 
@@ -101,6 +112,7 @@ public sealed class ChangeItem : INotifyPropertyChanged
 
             _customText = value;
             NotifyDecisionChanged();
+            Remembered = RememberState.None;
         }
     }
 
@@ -160,6 +172,58 @@ public sealed class ChangeItem : INotifyPropertyChanged
         _decision = decision;
         _customText = newCustom;
         NotifyDecisionChanged();
+        Remembered = RememberState.None;
+    }
+
+    /// <summary>Set when the decision came from an earlier run; any new decision clears it.</summary>
+    public RememberState Remembered
+    {
+        get => _remembered;
+        set
+        {
+            if (_remembered == value)
+            {
+                return;
+            }
+
+            _remembered = value;
+            if (PropertyChanged is { } handler)
+            {
+                foreach (var args in RememberedDependents)
+                {
+                    handler(this, args);
+                }
+            }
+        }
+    }
+
+    public bool IsRemembered => Remembered != RememberState.None;
+
+    /// <summary>Remembered from an earlier run, but on a line that has changed (or by pattern): worth a look.</summary>
+    public bool NeedsRememberedCheck => Remembered is RememberState.Changed or RememberState.Pattern;
+
+    public string? RememberedNote => Remembered switch
+    {
+        RememberState.Same => "Remembered from an earlier run: you decided this same match then.",
+        RememberState.Changed => "Remembered from an earlier run, but the line around it has changed since. Check it still fits.",
+        RememberState.Pattern => "You decided matches like this with “… all like this” in an earlier run. Check it still fits.",
+        RememberState.AlreadyConverted => "This file is unchanged output of an earlier run, so the matches left in it were left on purpose.",
+        _ => null,
+    };
+
+    public string DecisionDisplay
+    {
+        get
+        {
+            var text = Decision switch
+            {
+                Decision.Pending => "Needs decision",
+                Decision.Replace => "Replace",
+                Decision.Custom => "Custom",
+                _ => "Skip",
+            };
+            return IsRemembered ? text + " · remembered" : text;
+        }
     }
 
     private Decision Allowed(Decision decision) => CanChange || decision is Decision.Skip ? decision : Decision.Skip;

@@ -41,6 +41,24 @@ public enum Decision
     Custom,
 }
 
+/// <summary>Whether a change's decision came from an earlier run.</summary>
+public enum RememberState
+{
+    None,
+
+    /// <summary>The same match (same file, or same line) was decided before.</summary>
+    Same,
+
+    /// <summary>The same word in the same kind of place was decided before, but the line has changed.</summary>
+    Changed,
+
+    /// <summary>Matches like this were decided with "… all like this" before.</summary>
+    Pattern,
+
+    /// <summary>The file is unchanged output of an earlier run, so its remaining matches were left on purpose.</summary>
+    AlreadyConverted,
+}
+
 /// <summary>What kind of text a match sits in.</summary>
 public enum MatchContext
 {

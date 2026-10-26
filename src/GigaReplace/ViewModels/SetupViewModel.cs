@@ -119,6 +119,9 @@ public partial class SetupViewModel : ObservableObject
     [ObservableProperty]
     private PromptMode _promptMode = PromptMode.ReviewFirst;
 
+    [ObservableProperty]
+    private bool _rememberDecisions = true;
+
     public SetupViewModel(IDialogService dialogs)
     {
         _dialogs = dialogs;
@@ -160,6 +163,7 @@ public partial class SetupViewModel : ObservableObject
         DestinationPath = profile.DestinationPath;
         CopyGitFolder = profile.CopyGitFolder;
         PromptMode = profile.PromptMode;
+        RememberDecisions = profile.RememberDecisions;
     }
 
     public ReplaceProfile ToProfile() => new()
@@ -188,6 +192,7 @@ public partial class SetupViewModel : ObservableObject
         DestinationPath = DestinationPath.Trim().Trim('"'),
         CopyGitFolder = CopyGitFolder,
         PromptMode = PromptMode,
+        RememberDecisions = RememberDecisions,
     };
 
     /// <summary>A problem that stops a scan, or null.</summary>

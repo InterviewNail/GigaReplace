@@ -33,6 +33,10 @@
                                    Visibility="{Binding PendingCount, Converter={StaticResource HasValue}}" />
                         <TextBlock Text="{Binding DecisionText}" />
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0" Visibility="{Binding RememberedText, Converter={StaticResource HasValue}}">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE81C;" Margin="0,0,6,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{Binding RememberedText}" TextWrapping="Wrap" />
+                    </StackPanel>
                 </StackPanel>
             </DockPanel>
 
@@ -107,8 +111,8 @@
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Where" Binding="{Binding ContextDetail}" Width="1.4*" ElementStyle="{StaticResource CellText}" />
                         <DataGridTextColumn Header="Why it's flagged" Binding="{Binding RiskSummary}" Width="1.4*" ElementStyle="{StaticResource ReasonCellText}" />
-                        <DataGridTextColumn Header="Decision" Binding="{Binding Decision, Converter={StaticResource DecisionText}}" SortMemberPath="Decision"
-                                            Width="112" ElementStyle="{StaticResource CellText}" />
+                        <DataGridTextColumn Header="Decision" Binding="{Binding DecisionDisplay}" SortMemberPath="Decision"
+                                            Width="150" ElementStyle="{StaticResource CellText}" />
                     </DataGrid.Columns>
                 </DataGrid>
 
@@ -129,6 +133,16 @@
                                 <StackPanel>
                                     <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                     <TextBlock Text="{Binding Where}" Style="{StaticResource Hint}" Margin="0,2,0,10" />
+                                    <Border Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,10"
+                                            Visibility="{Binding Item.RememberedNote, Converter={StaticResource HasValue}}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="Forget" Padding="10,3" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                    Command="{Binding DataContext.ForgetSelectedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    ToolTip="Go back to what the scan proposed, and don't remember this decision" />
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE81C;" Margin="0,2,8,0" VerticalAlignment="Top" />
+                                            <TextBlock Text="{Binding Item.RememberedNote}" TextWrapping="Wrap" />
+                                        </DockPanel>
+                                    </Border>
                                     <TextBlock Text="Why it's flagged" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
                                     <ItemsControl ItemsSource="{Binding Risks}" ItemTemplate="{StaticResource RiskTemplate}"
                                                   Visibility="{Binding HasRisks, Converter={StaticResource BoolToVisibility}}" />

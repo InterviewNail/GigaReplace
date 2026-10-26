@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GigaReplace.Core;
 using GigaReplace.Core.Apply;
+using GigaReplace.Core.Memory;
 using GigaReplace.Core.Planning;
 using GigaReplace.Core.Profiles;
 using GigaReplace.Services;
@@ -16,6 +17,9 @@ public partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly JournalStore _journals = new();
     private CancellationTokenSource? _cts;
+
+    /// <summary>The memory of the folder the current scan is of, or null when remembering is off.</summary>
+    private DecisionMemory? _memory;
 
     [ObservableProperty]
     private int _selectedTab;
@@ -104,6 +108,7 @@ public partial class MainViewModel : ObservableObject
 
         var profile = Setup.ToProfile();
         ProfileStore.SaveLast(profile);
+        RememberDecisions();
         _cts = new CancellationTokenSource();
         IsBusy = true;
         StatusText = "Scanning…";
@@ -139,8 +144,11 @@ public partial class MainViewModel : ObservableObject
             _cts = null;
         }
 
-        Review.Load(scan);
-        StatusText = $"Scanned {scan.Tree.Files.Count:N0} files in {scan.Duration.TotalSeconds:0.0} s and found {scan.Items.Count:N0} matches.";
+        _memory = profile.RememberDecisions ? DecisionMemoryStore.Load(scan.RootPath) : null;
+        var recall = _memory is null ? default : DecisionRecall.Apply(scan, _memory);
+        Review.Load(scan, recall);
+        StatusText = $"Scanned {scan.Tree.Files.Count:N0} files in {scan.Duration.TotalSeconds:0.0} s and found {scan.Items.Count:N0} matches."
+            + (recall.Total == 1 ? " Reused 1 decision from last time." : recall.Total > 1 ? $" Reused {recall.Total:N0} decisions from last time." : "");
         if (scan.Items.Count == 0)
         {
             _dialogs.Info("Nothing to change", "None of the find texts appear in file contents, file names or folder names.");
@@ -269,6 +277,8 @@ public partial class MainViewModel : ObservableObject
                 ? CopyApplier.Apply(plan, destination, output.CopyGitFolder, progress, token)
                 : InPlaceApplier.Apply(plan, _journals, progress, token));
             Results.Show(result);
+            RememberDecisions();
+            RememberOutputs(plan, result.OutputRoot);
             if (!copy)
             {
                 Review.MarkStale();
@@ -385,5 +395,90 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    public void OnClosing() => ProfileStore.SaveLast(Setup.ToProfile());
+    public void OnClosing()
+    {
+        ProfileStore.SaveLast(Setup.ToProfile());
+        RememberDecisions();
+    }
+
+    /// <summary>Saves the current scan's decisions to its folder's memory (once the files changed in place, they already were).</summary>
+    private void RememberDecisions()
+    {
+        if (_memory is null || Review.Scan is not { } scan || Review.IsStale)
+        {
+            return;
+        }
+
+        try
+        {
+            DecisionRecall.Record(scan, _memory, Review.LikeThisChoices, Review.ForgottenPatterns);
+            DecisionMemoryStore.Save(_memory);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText = $"Couldn't save the remembered decisions: {ex.Message}";
+        }
+    }
+
+    /// <summary>Notes what was written, so scanning the result later knows those files are already converted.</summary>
+    private void RememberOutputs(ApplyPlan plan, string outputRoot)
+    {
+        if (_memory is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var output = DecisionMemoryStore.Load(outputRoot);
+            DecisionRecall.RecordOutputs(plan, output);
+            DecisionMemoryStore.Save(output);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText = $"Couldn't save the remembered decisions: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void ForgetMemory()
+    {
+        string root;
+        try
+        {
+            root = Scanner.ResolveSource(Setup.SourcePath).Root;
+        }
+        catch (ScanException ex)
+        {
+            _dialogs.Info("Nothing to forget", ex.Message);
+            return;
+        }
+
+        if (!DecisionMemoryStore.Exists(root))
+        {
+            _dialogs.Info("Nothing to forget", $"No decisions are remembered for {root}.");
+            return;
+        }
+
+        if (_dialogs.Choose("Forget remembered decisions?", $"Forget every decision remembered for {root}? The next scan will ask about everything again.", ["Forget them", "Cancel"]) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            DecisionMemoryStore.Delete(root);
+            if (_memory is not null && string.Equals(Path.GetFullPath(_memory.Root).TrimEnd('\\'), Path.GetFullPath(root).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+            {
+                // Don't save this scan's decisions back (some came from what was just forgotten).
+                _memory = null;
+            }
+
+            StatusText = "Forgot the remembered decisions. Scan again to start fresh.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _dialogs.Error("Couldn't forget them", ex.Message);
+        }
+    }
 }
