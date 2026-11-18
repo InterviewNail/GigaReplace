@@ -22,7 +22,7 @@ public static class RiskCatalog
             or RiskCode.PackageIdentity or RiskCode.AppUserModelId or RiskCode.AssemblyReference
             => RiskCategory.AppIdentity,
         RiskCode.WatchListTerm => RiskCategory.WatchList,
-        RiskCode.PdfFitted or RiskCode.PdfEditByHand => RiskCategory.Documents,
+        RiskCode.PdfFitted or RiskCode.PdfEditByHand or RiskCode.DocMixedFormatting or RiskCode.DocTrackedChange or RiskCode.DocField => RiskCategory.Documents,
         _ => RiskCategory.PersistedData,
     };
 
@@ -61,6 +61,9 @@ public static class RiskCatalog
         RiskCode.WatchListTerm => "Watch-list",
         RiskCode.PdfFitted => "Resized to fit",
         RiskCode.PdfEditByHand => "Edit by hand",
+        RiskCode.DocMixedFormatting => "Mixed formatting",
+        RiskCode.DocTrackedChange => "Tracked change",
+        RiskCode.DocField => "Field result",
         _ => code.ToString(),
     };
 
@@ -70,7 +73,7 @@ public static class RiskCatalog
         RiskCategory.PersistedData => "Persisted/external data",
         RiskCategory.AppIdentity => "App identity",
         RiskCategory.WatchList => "Watch-list",
-        RiskCategory.Documents => "PDF documents",
+        RiskCategory.Documents => "Documents (PDF, Word, RTF)",
         _ => category.ToString(),
     };
 }

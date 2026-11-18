@@ -40,6 +40,12 @@ public sealed class ReplaceProfile
     /// <summary>Also change text on PDF pages where that can be done safely; otherwise it's only listed.</summary>
     public bool EditPdfText { get; set; } = true;
 
+    /// <summary>Look for matches inside Word documents: .docx (changed where safe) and old-style .doc (listed only).</summary>
+    public bool SearchWordDocuments { get; set; } = true;
+
+    /// <summary>Look for matches inside RTF documents.</summary>
+    public bool SearchRtfDocuments { get; set; } = true;
+
     /// <summary>Extra exclusions in .gitignore syntax, relative to the source folder.</summary>
     public List<string> ExcludePatterns { get; set; } = [.. DefaultExcludePatterns];
 

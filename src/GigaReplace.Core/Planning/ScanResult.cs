@@ -1,5 +1,6 @@
 using GigaReplace.Core.Analysis;
 using GigaReplace.Core.FileSystem;
+using GigaReplace.Core.Documents;
 using GigaReplace.Core.Pdf;
 using GigaReplace.Core.Text;
 
@@ -17,11 +18,13 @@ public sealed class ScannedFile
 
     public TextFileContent? Content { get; init; }
 
-    /// <summary>The searchable view of a PDF, when PDFs are searched.</summary>
-    public PdfContent? Pdf { get; init; }
+    /// <summary>The searchable view of a document (PDF, Word, RTF), when documents of its kind are searched.</summary>
+    public IDocumentContent? Document { get; init; }
+
+    public PdfContent? Pdf => Document as PdfContent;
 
     /// <summary>The text that content matches' offsets refer to.</summary>
-    public string? SearchText => Content?.Text ?? Pdf?.Text;
+    public string? SearchText => Content?.Text ?? Document?.Text;
 
     /// <summary>SHA-256 of the file's bytes when it was scanned (text files and PDFs).</summary>
     public byte[]? Hash { get; init; }

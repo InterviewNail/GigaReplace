@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using GigaReplace.Core.Analysis;
 using GigaReplace.Core.FileSystem;
-using GigaReplace.Core.Pdf;
+using GigaReplace.Core.Documents;
 using GigaReplace.Core.Text;
 
 namespace GigaReplace.Core.Planning;
@@ -18,9 +18,6 @@ public static class Scanner
 {
     private const int MaxWordLength = 256;
     private const int MaxLineLength = 400;
-
-    /// <summary>PDF replacements drawn within this much of their natural width aren't flagged; the difference doesn't show.</summary>
-    private const double PdfFitTolerancePercent = 10;
 
     public static Task<ScanResult> ScanAsync(ReplaceProfile profile, IProgress<ScanProgress>? progress = null, CancellationToken ct = default) =>
         Task.Run(() => Scan(profile, progress, ct), ct);
@@ -54,8 +51,8 @@ public static class Scanner
             var entry = tree.Files[i];
             var fullPath = Path.Combine(root, entry.RelativePath);
             var read = TextFileReader.Read(fullPath, maxBytes);
-            var pdf = profile.SearchPdfs && read.Status == FileReadStatus.Binary && IsPdf(entry.RelativePath)
-                ? LoadPdf(fullPath, entry, maxBytes, profile, warnings)
+            var document = read.Status == FileReadStatus.Binary && DocumentReader.Handles(entry.RelativePath, profile)
+                ? LoadDocument(fullPath, entry, maxBytes, profile, warnings)
                 : null;
             scanned[i] = new ScannedFile
             {
@@ -64,8 +61,8 @@ public static class Scanner
                 LastWriteUtc = entry.LastWriteUtc,
                 Status = read.Status,
                 Content = read.Content,
-                Pdf = pdf,
-                Hash = pdf?.Hash ?? read.Hash,
+                Document = document,
+                Hash = document?.Hash ?? read.Hash,
                 Error = read.Error,
             };
 
@@ -131,12 +128,12 @@ public static class Scanner
             });
         }
 
-        var pdfRules = contentRules.Where(r => r.Origin == RuleOrigin.User).ToList();
-        if (pdfRules.Count > 0)
+        var documentRules = contentRules.Where(r => r.Origin == RuleOrigin.User).ToList();
+        if (documentRules.Count > 0)
         {
-            foreach (var file in scanned.Where(s => s.Pdf is not null))
+            foreach (var file in scanned.Where(s => s.Document is not null))
             {
-                foreach (var item in PdfItems(file, pdfRules, profile, watch))
+                foreach (var item in DocumentItems(file, documentRules, profile, watch))
                 {
                     items.Add(item);
                 }
@@ -352,9 +349,7 @@ public static class Scanner
         return result;
     }
 
-    private static bool IsPdf(string path) => path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-
-    private static PdfContent? LoadPdf(string fullPath, TreeFile entry, long maxBytes, ReplaceProfile profile, ConcurrentBag<string> warnings)
+    private static IDocumentContent? LoadDocument(string fullPath, TreeFile entry, long maxBytes, ReplaceProfile profile, ConcurrentBag<string> warnings)
     {
         if (entry.Length > maxBytes)
         {
@@ -364,33 +359,33 @@ public static class Scanner
 
         try
         {
-            var pdf = PdfContent.Load(File.ReadAllBytes(fullPath));
-            foreach (var note in pdf.Notes)
+            var document = DocumentReader.Load(entry.RelativePath, File.ReadAllBytes(fullPath));
+            foreach (var note in document.Notes)
             {
                 warnings.Add($"{entry.RelativePath}: {note}");
             }
 
-            return pdf;
+            return document;
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
         {
-            warnings.Add($"Couldn't read the PDF {entry.RelativePath}: {ex.Message}");
+            warnings.Add($"Couldn't read {entry.RelativePath}: {ex.Message}");
             return null;
         }
     }
 
     /// <summary>
-    /// Matches in a PDF's text and properties. Each is judged by whether it can be rewritten in
+    /// Matches in a document's text and properties. Each is judged by whether it can be rewritten in
     /// place; those that can't are listed (as "edit by hand") but never changed.
     /// </summary>
-    private static IEnumerable<ChangeItem> PdfItems(ScannedFile file, IReadOnlyList<ReplacementRule> rules, ReplaceProfile profile, WatchList watch)
+    private static IEnumerable<ChangeItem> DocumentItems(ScannedFile file, IReadOnlyList<ReplacementRule> rules, ReplaceProfile profile, WatchList watch)
     {
-        var pdf = file.Pdf!;
-        var text = pdf.Text;
+        var document = file.Document!;
+        var text = document.Text;
         var lines = new LineIndex(text);
         foreach (var match in RuleMatcher.FindAll(text, rules))
         {
-            if (!pdf.IsSearchable(match.Start, match.Length))
+            if (!document.IsSearchable(match.Start, match.Length))
             {
                 continue;
             }
@@ -402,7 +397,7 @@ public static class Scanner
                 continue;
             }
 
-            var info = pdf.Describe(match.Start, match.Length, proposal.Text, profile.EditPdfText);
+            var info = document.Describe(match.Start, match.Length, proposal.Text, profile);
             int line = lines.LineOf(match.Start);
             string lineText = lines.LineText(line);
             var (wordStart, wordLength) = WordShape.ExpandToWord(text, match.Start, match.Length);
@@ -427,15 +422,10 @@ public static class Scanner
                 risks.Add(new RiskFinding(RiskCode.WatchListTerm, $"This line contains “{term}”, which is on your watch-list."));
             }
 
-            if (info.ReadOnlyReason is { } reason)
+            risks.AddRange(info.Risks);
+            if (info.ReadOnlyReason is { } reason && !risks.Any(r => r.Code == RiskCode.PdfEditByHand))
             {
                 risks.Add(new RiskFinding(RiskCode.PdfEditByHand, reason));
-            }
-            else if (info.FitPercent is { } fit && Math.Abs(fit - 100) >= PdfFitTolerancePercent)
-            {
-                risks.Add(new RiskFinding(RiskCode.PdfFitted, fit < 100
-                    ? $"“{proposal.Text}” is wider than “{original}”, so it's drawn squeezed to {fit:0}% of its normal width to fit the same space. The rest of the line stays where it is."
-                    : $"“{proposal.Text}” is narrower than “{original}”, so it's drawn stretched to {fit:0}% of its normal width to fill the same space. The rest of the line stays where it is."));
             }
 
             risks = Enabled(risks, profile);

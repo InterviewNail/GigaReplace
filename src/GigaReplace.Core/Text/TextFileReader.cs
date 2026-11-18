@@ -60,7 +60,7 @@ public static class TextFileReader
         ".zip", ".7z", ".rar", ".gz", ".tgz", ".tar", ".bz2", ".xz", ".nupkg", ".snupkg", ".vsix", ".msi", ".msm",
         ".msix", ".msixbundle", ".appx", ".appxbundle", ".cab", ".snk", ".pfx", ".p12", ".keystore", ".jks",
         ".ttf", ".otf", ".woff", ".woff2", ".eot", ".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".wma",
-        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".webm", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".webm", ".pdf", ".doc", ".dot", ".docx", ".docm", ".dotx", ".dotm", ".rtf", ".xls", ".xlsx", ".ppt", ".pptx",
         ".odt", ".ods", ".db", ".sqlite", ".sqlite3", ".mdf", ".ldf", ".bin", ".dat", ".onnx", ".pt", ".pth", ".gguf",
         ".ggml", ".safetensors", ".pb", ".tflite", ".class", ".jar", ".pyc", ".blend", ".fbx", ".glb", ".cache",
         ".resources", ".baml", ".chm", ".swf", ".xnb", ".suo", ".vsidx", ".lock",

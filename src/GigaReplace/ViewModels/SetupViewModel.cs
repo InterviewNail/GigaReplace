@@ -81,6 +81,12 @@ public partial class SetupViewModel : ObservableObject
     private bool _editPdfText = true;
 
     [ObservableProperty]
+    private bool _searchWordDocuments = true;
+
+    [ObservableProperty]
+    private bool _searchRtfDocuments = true;
+
+    [ObservableProperty]
     private string _excludePatterns = string.Join(Environment.NewLine, ReplaceProfile.DefaultExcludePatterns);
 
     [ObservableProperty]
@@ -150,6 +156,8 @@ public partial class SetupViewModel : ObservableObject
         RenameFolders = profile.RenameFolders;
         SearchPdfs = profile.SearchPdfs;
         EditPdfText = profile.EditPdfText;
+        SearchWordDocuments = profile.SearchWordDocuments;
+        SearchRtfDocuments = profile.SearchRtfDocuments;
         ExcludePatterns = string.Join(Environment.NewLine, profile.ExcludePatterns);
         RespectGitIgnore = profile.RespectGitIgnore;
         MaxFileSizeMb = profile.MaxFileSizeMb;
@@ -176,6 +184,8 @@ public partial class SetupViewModel : ObservableObject
         RenameFolders = RenameFolders,
         SearchPdfs = SearchPdfs,
         EditPdfText = EditPdfText,
+        SearchWordDocuments = SearchWordDocuments,
+        SearchRtfDocuments = SearchRtfDocuments,
         ExcludePatterns = Lines(ExcludePatterns),
         RespectGitIgnore = RespectGitIgnore,
         MaxFileSizeMb = Math.Clamp(MaxFileSizeMb, 1, 1024),

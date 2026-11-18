@@ -291,9 +291,9 @@ public static class PlanValidator
     {
         foreach (var group in scan.Items.Where(i => i.Kind == ChangeKind.Content && i.WillChange).GroupBy(i => i.RelativePath))
         {
-            if (scan.Files[group.Key].Pdf is { } pdf)
+            if (scan.Files[group.Key].Document is { } document)
             {
-                CheckPdf(group.Key, pdf, group, problems);
+                CheckDocument(group.Key, document, group, problems);
                 continue;
             }
 
@@ -318,17 +318,17 @@ public static class PlanValidator
         }
     }
 
-    /// <summary>Custom text in a PDF must be drawable with the font already there.</summary>
-    private static void CheckPdf(string path, Pdf.PdfContent pdf, IEnumerable<ChangeItem> items, List<PlanProblem> problems)
+    /// <summary>Custom text in a document must be writable there (in a PDF, drawable with the font already there).</summary>
+    private static void CheckDocument(string path, Documents.IDocumentContent document, IEnumerable<ChangeItem> items, List<PlanProblem> problems)
     {
-        var bad = items.Where(i => pdf.CannotWrite(i.Offset, i.Length, i.FinalText) is not null).ToList();
+        var bad = items.Where(i => document.CannotWrite(i.Offset, i.Length, i.FinalText) is not null).ToList();
         if (bad.Count > 0)
         {
             problems.Add(new PlanProblem
             {
                 Severity = ProblemSeverity.Error,
-                Title = "Text the PDF can't draw",
-                Message = $"{path}: {pdf.CannotWrite(bad[0].Offset, bad[0].Length, bad[0].FinalText)}",
+                Title = document is Pdf.PdfContent ? "Text the PDF can't draw" : $"Text the {document.KindName} can't take",
+                Message = $"{path}: {document.CannotWrite(bad[0].Offset, bad[0].Length, bad[0].FinalText)}",
                 Items = bad,
                 Fixes = [new QuickFix("Keep the old text", bad, Decision.Skip)],
             });

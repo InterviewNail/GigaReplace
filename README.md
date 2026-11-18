@@ -91,7 +91,7 @@ Each kind can be switched off in Setup.
 | Persisted or external data | Properties of serialized types (JSON, XML, EF, `IOptions`, user settings) unless their stored name is fixed by an attribute; strings used as file or folder names, registry keys, mutex and pipe names, environment variables, configuration and resource keys, URLs, connection strings, reflection names |
 | App identity | `AssemblyName`, `RootNamespace`, `PackageId`, `InternalsVisibleTo`, manifests, installer scripts, and project files whose default assembly name or namespace would change |
 | Watch-list | Any match on a line containing your own terms (one per line; `/regex/` allowed) |
-| PDF documents | PDF text that has to be squeezed or stretched by more than 10% to fit; PDF text that can only be edited by hand (see below) |
+| Documents | PDF text that has to be squeezed or stretched by more than 10% to fit; Word and RTF matches split across different formatting, inside tracked insertions, or shown by fields that Word recalculates; anything that can only be edited by hand (see below) |
 
 Optionally, **new identity GUIDs** (UpgradeCode, ProductCode, ProjectGuid, UserSecretsId,
 assembly GUID) are generated and applied consistently everywhere they appear, so a renamed
@@ -117,11 +117,31 @@ changed objects are appended, as PDF editors do. Annotations, form fields and bo
 searched. If the PDF is generated from files in the tree (Markdown, Word, report templates),
 changing those and regenerating it gives the cleanest result.
 
+## Word and RTF files
+
+Word documents and RTF files are searched as the text they show, not their markup (switch each
+off in Setup). Word reflows text itself, so a replacement of any length fits.
+
+- **Word (`.docx`, `.docm`, `.dotx`, `.dotm`):** the body, tables, text boxes, headers, footers,
+  footnotes, endnotes, comments and document properties are searched and changed. Only the
+  parts that change are rewritten; the rest of the package keeps its contents.
+- **RTF (`.rtf`):** the text, including accented and Unicode letters stored as escapes, and the
+  document properties. Fonts, styles, colors and other formatting codes are never matched or
+  changed, even when a word is written as `{\b Order}Hub`.
+- **Old Word (`.doc`, `.dot`):** the text is found and listed, but never changed: the format
+  can't be rewritten safely. Open it in Word, save it as `.docx`, and scan again.
+
+A match that spans differently formatted pieces (half bold, say) is flagged: the new text takes
+the formatting of its first piece. So are matches inside tracked insertions, and text shown by
+a field such as `DOCPROPERTY Title`, which Word would bring back when it updates fields (link
+text isn't flagged; Word keeps it). Matches across a tab or line break, and everything in a
+digitally signed document, are listed for you to edit by hand.
+
 ## Good to know
 
 - Files keep their encoding, byte order mark and line endings byte for byte. A file counts as
   text only if decoding and re-encoding it reproduces the original bytes. Binary files other
-  than PDFs are never edited, but can be renamed.
+  than PDF, Word and RTF documents are never edited, but can be renamed.
 - `.git` folders are never changed. `bin`, `obj`, `.vs` and friends are skipped by default, and
   `.gitignore` files in the tree are honored (global git excludes aren't read).
 - C# is analyzed with the Roslyn parser, without compiling. The analysis is thorough but
@@ -134,7 +154,7 @@ changing those and regenerating it gives the cleanest result.
 
 | Path | What's there |
 | --- | --- |
-| `src/GigaReplace.Core` | The engine: matching and casing (`Text`), tree walking and `.gitignore` (`FileSystem`), per-file analyzers (`Analysis`), PDF reading and rewriting (`Pdf`, on top of PdfPig), scanning and plan validation (`Planning`), copy, in-place and undo (`Apply`), profiles and the CSV report |
+| `src/GigaReplace.Core` | The engine: matching and casing (`Text`), tree walking and `.gitignore` (`FileSystem`), per-file analyzers (`Analysis`), PDF reading and rewriting (`Pdf`, on top of PdfPig), Word, RTF and old-Word documents (`Documents`), scanning and plan validation (`Planning`), copy, in-place and undo (`Apply`), profiles and the CSV report |
 | `src/GigaReplace` | The WPF app (MVVM with CommunityToolkit.Mvvm, Fluent theme that follows the system light/dark setting) |
 | `tests/GigaReplace.Core.Tests` | xUnit tests for the engine |
 

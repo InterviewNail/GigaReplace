@@ -3,13 +3,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Core;
+using GigaReplace.Core.Documents;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 using UglyToad.PdfPig.Tokens;
 
 namespace GigaReplace.Core.Pdf;
 
-/// <summary>Where a match sits in a PDF and whether it can be changed there.</summary>
-public sealed record PdfMatchInfo(MatchContext Context, string Detail, string Place, string? ReadOnlyReason, double? FitPercent);
 
 /// <summary>A content stream whose text operators we may rewrite.</summary>
 internal sealed class PdfStream
@@ -114,8 +113,11 @@ internal sealed class PdfProperty
 /// A PDF as GigaReplace sees it: one searchable text (document properties, then each page's
 /// text) where every character knows what drew it, so a match can be judged and rewritten.
 /// </summary>
-public sealed partial class PdfContent
+public sealed partial class PdfContent : IDocumentContent
 {
+    /// <summary>PDF replacements drawn within this much of their natural width aren't flagged; the difference doesn't show.</summary>
+    private const double FitTolerancePercent = 10;
+
     private readonly List<PdfCharKind> _kinds = [];
     private readonly List<int> _owners = [];
     private readonly List<int> _parts = [];
@@ -131,6 +133,8 @@ public sealed partial class PdfContent
         Bytes = bytes;
         Hash = SHA256.HashData(bytes);
     }
+
+    public string KindName => "PDF";
 
     public string Text => _text;
 
@@ -420,8 +424,27 @@ public sealed partial class PdfContent
         return length > 0;
     }
 
+    public DocumentMatchInfo Describe(int start, int length, string replacement, ReplaceProfile profile)
+    {
+        var (context, detail, place, reason, fit) = Describe(start, length, replacement, profile.EditPdfText);
+        var risks = new List<RiskFinding>();
+        if (reason is not null)
+        {
+            risks.Add(new RiskFinding(RiskCode.PdfEditByHand, reason));
+        }
+        else if (fit is { } percent && Math.Abs(percent - 100) >= FitTolerancePercent)
+        {
+            var original = _text.Substring(start, length);
+            risks.Add(new RiskFinding(RiskCode.PdfFitted, percent < 100
+                ? $"“{replacement}” is wider than “{original}”, so it's drawn squeezed to {percent:0}% of its normal width to fit the same space. The rest of the line stays where it is."
+                : $"“{replacement}” is narrower than “{original}”, so it's drawn stretched to {percent:0}% of its normal width to fill the same space. The rest of the line stays where it is."));
+        }
+
+        return new DocumentMatchInfo(context, detail, place, reason, risks);
+    }
+
     /// <summary>Where the match is, and whether (and how) <paramref name="replacement"/> can be written there.</summary>
-    public PdfMatchInfo Describe(int start, int length, string replacement, bool allowPageText)
+    private (MatchContext Context, string Detail, string Place, string? ReadOnlyReason, double? FitPercent) Describe(int start, int length, string replacement, bool allowPageText)
     {
         var (_, place, page) = SectionAt(start);
         var kind = _kinds[start];
@@ -429,20 +452,20 @@ public sealed partial class PdfContent
         {
             var property = _properties[_owners[start]];
             string detail = property.InfoKey is not null ? $"document {property.Label.ToLowerInvariant()}" : property.Label;
-            return new PdfMatchInfo(MatchContext.PdfProperty, detail, "properties", DocumentProblem is null ? null : $"It can't be changed, because {DocumentProblem}.", null);
+            return (MatchContext.PdfProperty, detail, "properties", DocumentProblem is null ? null : $"It can't be changed, because {DocumentProblem}.", null);
         }
 
         string pageDetail = $"page {page}";
         string? reason = PageTextProblem(start, length, replacement, allowPageText, out var segments, out int[]? codes);
         if (reason is not null || segments is null || codes is null)
         {
-            return new PdfMatchInfo(MatchContext.PdfText, pageDetail, place, reason, null);
+            return (MatchContext.PdfText, pageDetail, place, reason, null);
         }
 
         double before = segments.Sum(s => s.Width);
         double after = segments[0].Show.Advance(codes.Select(c => new PdfPart(c, 0)));
         double? fit = after > 0 && before > 0 ? before / after * 100 : null;
-        return new PdfMatchInfo(MatchContext.PdfText, pageDetail, place, null, fit);
+        return (MatchContext.PdfText, pageDetail, place, null, fit);
     }
 
     /// <summary>Why <paramref name="replacement"/> can't be written over the match, or null if it can.</summary>

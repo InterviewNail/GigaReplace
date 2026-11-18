@@ -80,6 +80,8 @@ public enum MatchContext
     IdentityGuid,
     PdfText,
     PdfProperty,
+    DocumentText,
+    DocumentProperty,
 }
 
 public enum RiskCategory
@@ -135,6 +137,9 @@ public enum RiskCode
     // Documents
     PdfFitted,
     PdfEditByHand,
+    DocMixedFormatting,
+    DocTrackedChange,
+    DocField,
 }
 
 public static class ContextNames
@@ -159,6 +164,8 @@ public static class ContextNames
         MatchContext.IdentityGuid => "Identity GUID",
         MatchContext.PdfText => "PDF text",
         MatchContext.PdfProperty => "PDF property",
+        MatchContext.DocumentText => "Document text",
+        MatchContext.DocumentProperty => "Document property",
         _ => context.ToString(),
     };
 }

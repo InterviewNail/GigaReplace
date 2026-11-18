@@ -45,11 +45,11 @@ public sealed class ApplyPlan
         foreach (var group in scan.Items.Where(i => i.Kind == ChangeKind.Content && i.WillChange).GroupBy(i => i.RelativePath, StringComparer.OrdinalIgnoreCase))
         {
             var file = scan.Files[group.Key];
-            if (file.Pdf is { } pdf)
+            if (file.Document is { } document)
             {
                 try
                 {
-                    writes.Add(new ContentWrite(group.Key, pdf.Apply(group), pdf.Hash, group.Count()));
+                    writes.Add(new ContentWrite(group.Key, document.Apply(group), document.Hash, group.Count()));
                 }
                 catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
                 {
